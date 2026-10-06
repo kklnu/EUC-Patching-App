@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Route, Routes } from 'react-router'
+import { Link, NavLink, Navigate, Route, Routes } from 'react-router'
 import DashboardPage from './pages/DashboardPage.tsx'
 import ReportIssuePage from './pages/ReportIssuePage.tsx'
 
@@ -7,9 +7,16 @@ function App() {
     <>
       <header className="site-header">
         <nav>
-          <span className="site-title">EUC Patching App</span>
-          <NavLink to="/report">Report an issue</NavLink>
-          <NavLink to="/dashboard">Dashboard</NavLink>
+          <Link to="/" className="site-brand">
+            <span className="brand-wordmark">nexteer</span>
+            <span className="app-name">EUC Patching</span>
+          </Link>
+          <NavLink to="/report" className="nav-link">
+            Report an issue
+          </NavLink>
+          <NavLink to="/dashboard" className="nav-link">
+            Dashboard
+          </NavLink>
         </nav>
       </header>
       <main>
