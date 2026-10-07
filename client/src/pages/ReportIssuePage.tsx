@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
+import AttachmentPicker from '../components/AttachmentPicker.tsx'
 import FormField from '../components/FormField.tsx'
 import { saveIssueReport } from '../services/issueStorage.ts'
 import type { IssueReport, NewIssueReport } from '../types/issue.ts'
@@ -10,11 +11,19 @@ const emptyForm: NewIssueReport = {
   affectedService: '',
   specificIssue: '',
   errorReceived: false,
+  errorMessage: '',
   errorDetails: '',
   affectedSoftware: '',
+  attachments: [],
 }
 
 type FormErrors = Partial<Record<keyof NewIssueReport, string>>
+
+// The fields that use a plain text input or textarea
+type TextFieldName = Exclude<
+  keyof NewIssueReport,
+  'errorReceived' | 'attachments'
+>
 
 function validate(form: NewIssueReport): FormErrors {
   const errors: FormErrors = {}
@@ -32,8 +41,8 @@ function validate(form: NewIssueReport): FormErrors {
     errors.affectedSoftware = 'Enter the affected software.'
   }
   if (!form.specificIssue.trim()) errors.specificIssue = 'Describe the issue.'
-  if (form.errorReceived && !form.errorDetails?.trim()) {
-    errors.errorDetails = 'Enter the error message you received.'
+  if (form.errorReceived && !form.errorMessage?.trim()) {
+    errors.errorMessage = 'Enter the error message you received.'
   }
   return errors
 }
@@ -42,6 +51,7 @@ function ReportIssuePage() {
   const [form, setForm] = useState<NewIssueReport>(emptyForm)
   const [errors, setErrors] = useState<FormErrors>({})
   const [savedReport, setSavedReport] = useState<IssueReport | null>(null)
+  const [saveError, setSaveError] = useState('')
 
   function updateField<K extends keyof NewIssueReport>(
     name: K,
@@ -55,7 +65,7 @@ function ReportIssuePage() {
   function handleTextChange(
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
-    const name = event.target.name as keyof NewIssueReport
+    const name = event.target.name as TextFieldName
     updateField(name, event.target.value)
   }
 
@@ -65,25 +75,35 @@ function ReportIssuePage() {
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) return
 
-    const report = saveIssueReport({
-      ...form,
-      errorDetails: form.errorReceived ? form.errorDetails : undefined,
-    })
-    setSavedReport(report)
+    try {
+      const report = saveIssueReport({
+        ...form,
+        errorMessage: form.errorReceived ? form.errorMessage : undefined,
+        errorDetails: form.errorReceived ? form.errorDetails : undefined,
+      })
+      setSaveError('')
+      setSavedReport(report)
+    } catch {
+      // Most likely the browser's storage is full because of attachments
+      setSaveError(
+        "Your report couldn't be saved. Try removing some attachments, then submit again.",
+      )
+    }
   }
 
   function startNewReport() {
     setForm(emptyForm)
     setErrors({})
+    setSaveError('')
     setSavedReport(null)
   }
 
   // Props shared by every text input, so each field only lists what differs
-  function textInputProps(name: keyof NewIssueReport) {
+  function textInputProps(name: TextFieldName) {
     return {
       id: name,
       name,
-      value: String(form[name] ?? ''),
+      value: form[name] ?? '',
       onChange: handleTextChange,
       'aria-invalid': errors[name] ? true : undefined,
       'aria-describedby': errors[name] ? `${name}-error` : undefined,
@@ -184,14 +204,35 @@ function ReportIssuePage() {
         </fieldset>
 
         {form.errorReceived && (
-          <FormField
-            id="errorDetails"
-            label="Error details"
-            hint="Copy the error message exactly, or describe what it said."
-            error={errors.errorDetails}
-          >
-            <textarea rows={3} {...textInputProps('errorDetails')} />
-          </FormField>
+          <>
+            <FormField
+              id="errorMessage"
+              label="Error message"
+              hint="Type the message exactly as it appeared, or the error code, for example 0x80070005."
+              error={errors.errorMessage}
+            >
+              <input type="text" {...textInputProps('errorMessage')} />
+            </FormField>
+
+            <FormField
+              id="errorDetails"
+              label="What happened? (optional)"
+              hint="For example, what you were doing when the error appeared."
+            >
+              <textarea rows={3} {...textInputProps('errorDetails')} />
+            </FormField>
+          </>
+        )}
+
+        <AttachmentPicker
+          attachments={form.attachments}
+          onChange={(attachments) => updateField('attachments', attachments)}
+        />
+
+        {saveError && (
+          <p className="field-error" role="alert">
+            {saveError}
+          </p>
         )}
 
         <button type="submit">Submit report</button>

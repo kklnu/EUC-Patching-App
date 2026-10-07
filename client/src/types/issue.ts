@@ -13,9 +13,23 @@ export interface IssueReport {
   affectedService: string
   specificIssue: string
   errorReceived: boolean
-  // Only filled in when errorReceived is true
+  // The exact error text or code. Only filled in when errorReceived is true
+  errorMessage?: string
+  // Optional description of what happened. Only filled in when errorReceived is true
   errorDetails?: string
   affectedSoftware: string
+  attachments: IssueAttachment[]
+}
+
+// A screenshot or document attached to a report
+export interface IssueAttachment {
+  name: string
+  // MIME type, for example image/png or application/pdf
+  type: string
+  // Size in bytes
+  size: number
+  // The file contents as a data URL. Temporary until the backend stores files.
+  dataUrl: string
 }
 
 // What the form collects. The ID and timestamp are added when the report is saved.
