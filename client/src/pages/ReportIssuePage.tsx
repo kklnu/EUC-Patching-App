@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
+
 import AttachmentPicker from '../components/AttachmentPicker.tsx'
 import FormField from '../components/FormField.tsx'
 import { saveIssueReport } from '../services/issueStorage.ts'
@@ -52,6 +53,7 @@ function ReportIssuePage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [savedReport, setSavedReport] = useState<IssueReport | null>(null)
   const [saveError, setSaveError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateField<K extends keyof NewIssueReport>(
     name: K,
@@ -69,14 +71,15 @@ function ReportIssuePage() {
     updateField(name, event.target.value)
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const newErrors = validate(form)
     setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) return
 
+    setIsSubmitting(true)
     try {
-      const report = saveIssueReport({
+      const report = await saveIssueReport({
         ...form,
         errorMessage: form.errorReceived ? form.errorMessage : undefined,
         errorDetails: form.errorReceived ? form.errorDetails : undefined,
@@ -84,10 +87,11 @@ function ReportIssuePage() {
       setSaveError('')
       setSavedReport(report)
     } catch {
-      // Most likely the browser's storage is full because of attachments
       setSaveError(
-        "Your report couldn't be saved. Try removing some attachments, then submit again.",
+        "Your report couldn't be saved. Please try again, or contact IT directly.",
       )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -235,7 +239,9 @@ function ReportIssuePage() {
           </p>
         )}
 
-        <button type="submit">Submit report</button>
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Submitting...' : 'Submit report'}
+        </button>
       </form>
     </>
   )

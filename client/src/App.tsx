@@ -1,8 +1,11 @@
-import { Link, NavLink, Navigate, Route, Routes } from 'react-router'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router'
 import DashboardPage from './pages/DashboardPage.tsx'
 import ReportIssuePage from './pages/ReportIssuePage.tsx'
 
 function App() {
+  const location = useLocation()
+  const isDashboard = location.pathname.startsWith('/dashboard')
+
   return (
     <>
       <header className="site-header">
@@ -19,7 +22,7 @@ function App() {
           </NavLink>
         </nav>
       </header>
-      <main>
+      <main className={isDashboard ? 'dashboard-main' : undefined}>
         <Routes>
           <Route path="/" element={<Navigate to="/report" replace />} />
           <Route path="/report" element={<ReportIssuePage />} />
